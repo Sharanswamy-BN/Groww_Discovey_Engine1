@@ -1,31 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { DISCOVERY_QUESTIONS } from "@/lib/questions";
+import { useEffect, useRef, useState } from "react";
+
+type Msg = { role: "user" | "assistant"; text: string };
 
 export default function AskPage() {
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [active, setActive] = useState<string>(DISCOVERY_QUESTIONS[0].text);
-  const [out, setOut] = useState<any>(null);
+  const [messages, setMessages] = useState<Msg[]>([
+    {
+      role: "assistant",
+      text: "Ask anything about SIPs and first-time investing. I will answer from the collected reviews first.",
+    },
+  ]);
+  const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
+  const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch("/api/data?view=answers")
-      .then((r) => r.json())
-      .then((d) => {
-        const map: Record<string, string> = {};
-        for (const row of d.rows || []) {
-          map[row.question_key] = row.answer;
-        }
-        setAnswers(map);
-      });
-  }, []);
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, busy]);
 
-  async function ask(question: string) {
-    setActive(question);
+  async function send(text?: string) {
+    const question = (text ?? input).trim();
+    if (!question || busy) return;
+    setInput("");
+    setMessages((m) => [...m, { role: "user", text: question }]);
     setBusy(true);
-    setErr("");
     try {
       const res = await fetch("/api/ask", {
         method: "POST",
@@ -33,49 +32,80 @@ export default function AskPage() {
         body: JSON.stringify({ question }),
       });
       const json = await res.json();
-      if (!json.ok) throw new Error(json.error);
-      setOut(json.result);
+      if (!json.ok) throw new Error(json.error || "Could not answer");
+      setMessages((m) => [...m, { role: "assistant", text: json.result.answer }]);
     } catch (e) {
-      setErr(String(e));
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", text: `I could not answer that just now. ${String(e)}` },
+      ]);
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Ask</h1>
-      <p className="text-sm text-groww-muted">
-        Use Collect, then Extract, then Themes & opportunities on Overview so
-        these questions can be answered from the conversations.
-      </p>
-      <div className="space-y-3">
-        {DISCOVERY_QUESTIONS.map((q) => (
-          <article key={q.key} className="rounded-2xl border border-groww-line p-4 shadow-card">
-            <p className="text-sm font-semibold">{q.text}</p>
-            {answers[q.key] && (
-              <p className="mt-2 text-sm leading-6 text-groww-text">{answers[q.key]}</p>
-            )}
-            <button
-              onClick={() => ask(q.text)}
-              disabled={busy}
-              className="mt-3 rounded-full bg-groww-mint px-3 py-1.5 text-xs font-semibold text-groww-greenDark disabled:opacity-50"
-            >
-              {busy && active === q.text ? "Answering…" : "Ask"}
-            </button>
-          </article>
-        ))}
+    <div className="flex h-[calc(100vh-8.5rem)] flex-col rounded-2xl border border-groww-line bg-white shadow-card">
+      <div className="border-b border-groww-line px-4 py-3">
+        <h1 className="text-base font-semibold">Ask</h1>
+        <p className="text-xs text-groww-muted">Chat over collected reviews</p>
       </div>
-      {err && <p className="text-sm text-groww-danger">{err}</p>}
-      {out && (
-        <article className="rounded-2xl border border-groww-line p-5 shadow-card">
-          <p className="text-xs text-groww-greenDark">Latest answer</p>
-          <p className="mt-2 text-sm leading-6">{out.answer}</p>
-          {out.caution && (
-            <p className="mt-3 text-xs text-groww-muted">Caution: {out.caution}</p>
-          )}
-        </article>
-      )}
+
+      <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+        {messages.map((msg, i) => (
+          <div
+            key={i}
+            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+          >
+            <div
+              className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-6 ${
+                msg.role === "user"
+                  ? "bg-groww-green text-white"
+                  : "bg-groww-wash text-groww-text"
+              }`}
+            >
+              {msg.text}
+            </div>
+          </div>
+        ))}
+        {busy && (
+          <div className="flex justify-start">
+            <div className="rounded-2xl bg-groww-wash px-3.5 py-2.5 text-sm text-groww-muted">
+              Looking through reviews…
+            </div>
+          </div>
+        )}
+        <div ref={endRef} />
+      </div>
+
+      <form
+        className="flex gap-2 border-t border-groww-line p-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          send();
+        }}
+      >
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              send();
+            }
+          }}
+          placeholder="Type or paste a question"
+          rows={2}
+          className="min-h-[44px] flex-1 resize-none rounded-2xl border border-groww-line px-3 py-2 text-sm outline-none focus:border-groww-green"
+        />
+        <button
+          type="submit"
+          disabled={busy || !input.trim()}
+          className="self-end rounded-full bg-groww-green px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+        >
+          Send
+        </button>
+      </form>
     </div>
   );
 }

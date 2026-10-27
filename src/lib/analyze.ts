@@ -1,6 +1,5 @@
 import { getSql } from "./db";
 import { fastModel, groqJson, smartModel } from "./groq";
-import { DISCOVERY_QUESTIONS } from "./questions";
 import type { ExtractedAnalysis, Opportunity } from "./types";
 
 const EXTRACT_SYSTEM = `You are a product-research analyst for Groww, an Indian investing app.
@@ -494,38 +493,59 @@ ${JSON.stringify(
   return { agreement: second.overall_agreement_pct, n: rows.length };
 }
 
+const REVIEW_FALLBACK =
+  "The requested information was not found in the analyzed reviews. Based on my knowledge, here is the most relevant answer.";
+
 export async function askEngine(question: string) {
   const sql = getSql();
-  const themes = await sql`SELECT name, definition, mention_count, category, sample_quotes FROM themes ORDER BY mention_count DESC LIMIT 12`;
-  const opps = await sql`SELECT payload FROM opportunities ORDER BY score DESC LIMIT 6`;
-  const answers = await sql`SELECT question_key, answer FROM discovery_answers`;
   const docs = await sql`
     SELECT d.source, d.title, d.body, a.analysis
     FROM documents d
-    JOIN document_analyses a ON a.document_id = d.id
-    WHERE COALESCE((a.analysis->>'is_relevant')::boolean, false) = true
-    ORDER BY COALESCE((a.analysis->>'retention_risk')::int, 0) DESC
-    LIMIT 10
+    LEFT JOIN document_analyses a ON a.document_id = d.id
+    ORDER BY d.collected_at DESC
+    LIMIT 120
   `;
-  return groqJson<{ answer: string; citations: string[]; caution: string }>({
+  const words = question
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w.length > 3);
+  const ranked = [...docs]
+    .map((d) => {
+      const text = `${d.title || ""} ${d.body || ""}`.toLowerCase();
+      const hits = words.reduce((n, w) => n + (text.includes(w) ? 1 : 0), 0);
+      return { d, hits };
+    })
+    .sort((a, b) => b.hits - a.hits)
+    .slice(0, 28)
+    .map(({ d }) => ({
+      source: d.source,
+      title: d.title,
+      body: String(d.body || "").slice(0, 500),
+      summary: (d.analysis as ExtractedAnalysis | null)?.summary || null,
+    }));
+
+  const result = await groqJson<{ found_in_reviews: boolean; answer: string }>({
     model: smartModel(),
-    system:
-      "Answer as Groww Growth PM research assistant. Use only provided evidence. No fund/stock tips. No fear/FOMO. JSON. Prefer these discovery questions when relevant: " +
-      DISCOVERY_QUESTIONS.map((q) => q.text).join(" | "),
+    temperature: 0.3,
+    system: `You are the Groww Discovery Engine chatbot.
+First decide if the REVIEW EVIDENCE is enough to answer the user question.
+If yes: set found_in_reviews true. Write a clear, natural answer using only that evidence. You may polish wording. Do not invent review quotes. Do not recommend specific funds or stocks. Do not use fear, FOMO, or urgency.
+If no: set found_in_reviews false. The answer MUST start with this exact sentence:
+${REVIEW_FALLBACK}
+Then add a short helpful answer from general knowledge. Still do not recommend specific funds or stocks, and do not use fear/FOMO.
+Return JSON only: { "found_in_reviews": boolean, "answer": string }`,
     user: `Question: ${question}
 
-Themes: ${JSON.stringify(themes)}
-Opportunities: ${JSON.stringify(opps)}
-Prior answers: ${JSON.stringify(answers)}
-Docs: ${JSON.stringify(
-      docs.map((d) => ({
-        source: d.source,
-        title: d.title,
-        summary: (d.analysis as ExtractedAnalysis).summary,
-        body: String(d.body).slice(0, 400),
-      }))
-    )}
-
-Return { answer, citations: string[], caution }`,
+REVIEW EVIDENCE (${docs.length} reviews in store; top matches below):
+${JSON.stringify(ranked)}`,
   });
+
+  let answer = (result.answer || "").trim();
+  if (!result.found_in_reviews && !answer.startsWith(REVIEW_FALLBACK)) {
+    answer = `${REVIEW_FALLBACK} ${answer}`.trim();
+  }
+  return {
+    found_in_reviews: Boolean(result.found_in_reviews),
+    answer,
+  };
 }
