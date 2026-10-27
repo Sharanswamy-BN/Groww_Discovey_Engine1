@@ -1,6 +1,6 @@
 # Groww SIP Discovery Engine
 
-Product-research tool for Groww Growth. It reads public conversations about first-time SIPs in India, extracts themes with Groq, and ranks opportunity areas that could raise the share of first-time mutual fund investors who still have an **active SIP 12 months later**.
+Product-research tool for Groww Growth. It reads **live** public conversations from the **last 6 months** about first-time SIPs in India, extracts themes with Groq, and ranks opportunity areas that could raise the share of first-time mutual fund investors who still have an **active SIP 12 months later**.
 
 Active SIP = at least one successful instalment in the last 30 days.
 

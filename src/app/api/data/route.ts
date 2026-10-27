@@ -32,14 +32,14 @@ export async function GET(req: Request) {
             LEFT JOIN document_analyses a ON a.document_id = d.id
             WHERE d.source = ${source}
             ORDER BY d.collected_at DESC
-            LIMIT 80
+            LIMIT 200
           `
         : await sql`
             SELECT d.*, a.analysis
             FROM documents d
             LEFT JOIN document_analyses a ON a.document_id = d.id
             ORDER BY d.collected_at DESC
-            LIMIT 80
+            LIMIT 200
           `;
       return NextResponse.json({ rows });
     }

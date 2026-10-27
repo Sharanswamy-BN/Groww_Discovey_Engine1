@@ -1,5 +1,6 @@
 import { getSql } from "./db";
 import { fastModel, groqJson, smartModel } from "./groq";
+import { DISCOVERY_QUESTIONS } from "./questions";
 import type { ExtractedAnalysis, Opportunity } from "./types";
 
 const EXTRACT_SYSTEM = `You are a product-research analyst for Groww, an Indian investing app.
@@ -39,7 +40,7 @@ unmet_needs (string[]),
 summary (one sentence).`;
 }
 
-export async function extractBatch(limit = 12) {
+export async function extractBatch(limit = 20) {
   const sql = getSql();
   const rows = await sql`
     SELECT d.id, d.source, d.title, d.body
@@ -509,7 +510,8 @@ export async function askEngine(question: string) {
   return groqJson<{ answer: string; citations: string[]; caution: string }>({
     model: smartModel(),
     system:
-      "Answer as Groww Growth PM research assistant. Use only provided evidence. No fund/stock tips. No fear/FOMO. JSON.",
+      "Answer as Groww Growth PM research assistant. Use only provided evidence. No fund/stock tips. No fear/FOMO. JSON. Prefer these discovery questions when relevant: " +
+      DISCOVERY_QUESTIONS.map((q) => q.text).join(" | "),
     user: `Question: ${question}
 
 Themes: ${JSON.stringify(themes)}

@@ -12,9 +12,10 @@ export default function SourcesPage() {
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">Sources</h1>
       <p className="max-w-3xl text-sm leading-6 text-groww-muted">
-        The engine always loads a curated SIP corpus, then tries live Reddit
-        (r/IndiaInvestments, r/mutualfunds, r/personalfinanceindia, r/GrowwApp),
-        App Store RSS for Groww, and YouTube comments if you add a key.
+        Only live conversations posted in the last 6 months are kept. Older
+        posts and any curated/sample text are dropped on Collect. Sources:
+        Reddit (r/IndiaInvestments, r/mutualfunds, r/personalfinanceindia,
+        r/GrowwApp), Groww App Store reviews, and YouTube if a key is set.
       </p>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {(data?.sources || []).map((s: any) => (

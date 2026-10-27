@@ -3,8 +3,9 @@ import "./globals.css";
 import { AppShell } from "@/components/AppShell";
 
 export const metadata: Metadata = {
-  title: "Groww SIP Discovery Engine",
-  description: "Why first-time SIP investors stay or quietly drop off",
+  title: "Groww Discovery Engine",
+  description:
+    "Discovery engine that analyzes customer feedback and conversations across App Store, Play Store, Reddit investing communities, Trading Q&A forums, and social media to uncover actionable insights",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

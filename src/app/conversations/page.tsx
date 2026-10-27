@@ -21,7 +21,10 @@ export default function ConversationsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Conversations</h1>
+      <h1 className="text-2xl font-semibold">Conversation</h1>
+      <p className="text-sm text-groww-muted">
+        Play Store, App Store, Reddit, Trading Q&A and social conversations. Any year.
+      </p>
       <div className="flex flex-wrap gap-2">
         <input
           value={q}
@@ -48,6 +51,9 @@ export default function ConversationsPage() {
             <article key={r.id} className="rounded-2xl border border-groww-line p-4 shadow-card">
               <div className="flex flex-wrap items-center gap-2 text-xs text-groww-muted">
                 <span className="rounded-full bg-groww-mint px-2 py-0.5 text-groww-greenDark">{r.source}</span>
+                {r.posted_at && (
+                  <span>{new Date(r.posted_at).toLocaleDateString("en-IN")}</span>
+                )}
                 {a?.journey_stage && <span>{a.journey_stage}</span>}
                 {a?.retention_risk != null && <span>risk {a.retention_risk}/5</span>}
               </div>

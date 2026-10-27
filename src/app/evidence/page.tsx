@@ -30,11 +30,12 @@ export default function EvidencePage() {
         <h2 className="text-sm font-semibold">Workflow</h2>
         <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6">
           <li>
-            <b>Collect.</b> Live Reddit JSON + App Store RSS + optional YouTube,
-            plus a curated SIP corpus so source mix stays ≥2–3 even if a scrape is blocked.
+            <b>Collect.</b> Live Reddit JSON + App Store RSS + optional YouTube.
+            Window is the last 6 months. No seed corpus.
           </li>
           <li>
-            <b>Filter.</b> Live items must mention SIP / mutual fund language. IDs are hashed so reruns do not duplicate.
+            <b>Filter.</b> Must mention SIP / mutual fund language, must have a post
+            date inside 6 months. Older rows are deleted on each Collect.
           </li>
           <li>
             <b>Extract.</b> Groq JSON mode tags journey stage, expectations, pause triggers, checking habits, in-app confusion, outside-app behaviour, segments, unmet needs, retention risk.

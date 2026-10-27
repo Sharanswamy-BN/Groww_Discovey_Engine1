@@ -8,7 +8,7 @@ export const maxDuration = 60;
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const limit = Math.min(Number(body.limit) || 8, 15);
+    const limit = Math.min(Number(body.limit) || 20, 25);
     const result = await extractBatch(limit);
     return NextResponse.json({ ok: true, result });
   } catch (e) {

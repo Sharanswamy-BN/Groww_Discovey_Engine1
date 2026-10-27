@@ -12,24 +12,22 @@ export async function GET() {
     await migrate();
     const sql = getSql();
     const docs = await sql`SELECT count(*)::int AS n FROM documents`;
+    const play = await sql`SELECT count(*)::int AS n FROM documents WHERE source = 'play_store'`;
+    const other = await sql`SELECT count(*)::int AS n FROM documents WHERE source <> 'play_store'`;
     const analysed = await sql`SELECT count(*)::int AS n FROM document_analyses`;
     const relevant = await sql`
       SELECT count(*)::int AS n FROM document_analyses
       WHERE COALESCE((analysis->>'is_relevant')::boolean, false) = true
     `;
-    const themes = await sql`SELECT count(*)::int AS n FROM themes`;
-    const opps = await sql`SELECT count(*)::int AS n FROM opportunities`;
-    const evidence = await sql`SELECT count(*)::int AS n FROM evidence_log`;
     return NextResponse.json({
       env,
       ready: true,
       counts: {
         documents: docs[0].n,
+        play_store: play[0].n,
+        other: other[0].n,
         analysed: analysed[0].n,
         relevant: relevant[0].n,
-        themes: themes[0].n,
-        opportunities: opps[0].n,
-        evidence: evidence[0].n,
       },
     });
   } catch (e) {

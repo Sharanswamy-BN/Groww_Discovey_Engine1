@@ -83,6 +83,13 @@ export async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS ingest_cursors (
+      source TEXT PRIMARY KEY,
+      cursor TEXT,
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
 }
 
 export function envStatus() {
