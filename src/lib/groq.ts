@@ -33,5 +33,14 @@ export async function groqJson<T>(opts: {
     ],
   });
   const raw = completion.choices[0]?.message?.content || "{}";
-  return JSON.parse(raw) as T;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    const start = raw.indexOf("{");
+    const end = raw.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      return JSON.parse(raw.slice(start, end + 1)) as T;
+    }
+    throw new Error(`Groq returned non-JSON: ${raw.slice(0, 180)}`);
+  }
 }

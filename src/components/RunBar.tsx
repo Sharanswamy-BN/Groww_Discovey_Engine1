@@ -8,8 +8,16 @@ async function post(url: string, body?: object) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body || {}),
   });
-  const json = await res.json();
-  if (!res.ok || json.ok === false) throw new Error(json.error || "Request failed");
+  const text = await res.text();
+  let json: { ok?: boolean; error?: string; result?: unknown };
+  try {
+    json = JSON.parse(text);
+  } catch {
+    throw new Error(
+      text.trim().slice(0, 280) || `Request failed (HTTP ${res.status})`
+    );
+  }
+  if (!res.ok || json.ok === false) throw new Error(json.error || `Request failed (HTTP ${res.status})`);
   return json;
 }
 
@@ -37,7 +45,7 @@ export function RunBar() {
         <div>
           <h2 className="text-sm font-semibold text-groww-text">Run the engine</h2>
           <p className="text-xs text-groww-muted">
-            Collect Play Store reviews in batches (repeat until 8,000–10,000), extract, then fill Ask answers. No date cutoff.
+            Collect Play Store reviews in batches. Extract a few reviews per click (repeat until Analysed catches up). Then fill Ask answers.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -50,7 +58,7 @@ export function RunBar() {
           </button>
           <button
             disabled={!!busy}
-            onClick={() => run("Extract", () => post("/api/extract", { limit: 20 }))}
+            onClick={() => run("Extract", () => post("/api/extract", { limit: 4 }))}
             className="rounded-full bg-groww-blue px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
             {busy === "Extract" ? "Extracting…" : "2. Extract batch"}

@@ -39,7 +39,7 @@ unmet_needs (string[]),
 summary (one sentence).`;
 }
 
-export async function extractBatch(limit = 20) {
+export async function extractBatch(limit = 4) {
   const sql = getSql();
   const rows = await sql`
     SELECT d.id, d.source, d.title, d.body
@@ -71,7 +71,8 @@ export async function extractBatch(limit = 20) {
       errors.push(`${row.id}: ${String(e)}`);
     }
   }
-  await sql`
+  try {
+    await sql`
     INSERT INTO evidence_log (id, step, method, input_summary, output_summary, quality_checks, model, extras)
     VALUES (
       ${`ev_extract_${Date.now()}`},
@@ -95,6 +96,9 @@ export async function extractBatch(limit = 20) {
       ${JSON.stringify({ errors: errors.slice(0, 8) })}::jsonb
     )
   `;
+  } catch {
+    // Do not fail the batch if logging fails.
+  }
   const remaining = await sql`
     SELECT count(*)::int AS n
     FROM documents d
